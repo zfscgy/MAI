@@ -1,0 +1,36 @@
+// Use this to generate:  python -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. MPC.proto
+
+syntax = "proto3";
+
+message Status {
+    int32 res = 1;
+}
+
+message ServerDef {
+    int32 id = 1;
+    string address = 2;
+}
+
+message ServerSpec {
+    repeated ServerDef servers = 1;
+}
+
+message TensorSpec {
+    int32 tensor_id = 1;
+    repeated int32 shape = 2;
+}
+
+message Tensor {
+    bytes tensor_buffer = 1;
+}
+
+message Computation {
+    string computation = 1;
+}
+
+service MPCServer {
+    rpc SetServerSpec(ServerSpec) returns(Status) {}
+    rpc GetTensor(TensorSpec) returns(Tensor) {}
+    rpc DeleteTensor(TensorSpec) returns (Status) {}
+    rpc Compute(Computation) returns(TensorSpec) {}
+}
