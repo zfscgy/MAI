@@ -1,6 +1,6 @@
-from Core.Cluster import ClusterController, RemoteTensor
-import Core.GenExpr as ge
-
+from MAI.Core.Cluster.Cluster import ClusterController, RemoteTensor
+import MAI.Core.Expression.GenExpr as ge
+from MAI.Core.Utils.Parallel import parallel
 
 class ASharingError(Exception):
     def __init__(self, msg):
@@ -55,19 +55,22 @@ class ASharing:
         if isinstance(left, ASharedTensor):
             if isinstance(right, ASharedTensor):
                 return ASharedTensor(
-                    self.cluster.compute(func(left.v0, right.v0), 0),
-                    self.cluster.compute(func(left.v1, right.v1), 1)
+                    *parallel([lambda: self.cluster.compute(func(left.v0, right.v0), 0),
+                               lambda: self.cluster.compute(func(left.v1, right.v1), 1)],
+                              [[], []])
                 )
             else:
                 return ASharedTensor(
-                    self.cluster.compute(func(left.v0, right), 0),
-                    self.cluster.compute(func(left.v1, right), 1)
+                    *parallel([lambda: self.cluster.compute(func(left.v0, right), 0),
+                               lambda: self.cluster.compute(func(left.v1, right), 1)],
+                              [[], []])
                 )
         else:
             if isinstance(right, ASharedTensor):
                 return ASharedTensor(
-                    self.cluster.compute(func(ge.mul(left, 1/2), right.v0), 0),
-                    self.cluster.compute(func(ge.mul(left, 1/2), right.v1), 0)
+                    *parallel([lambda: self.cluster.compute(func(ge.mul(left, 1/2), right.v0), 0),
+                               lambda: self.cluster.compute(func(ge.mul(left, 1/2), right.v1), 0)],
+                              [[], []])
                 )
             else:
                 return self.cluster.compute(func(left, right), 0)
@@ -92,28 +95,37 @@ class ASharing:
                 # (l-u)(r-v)
                 mul0 = self.cluster.compute(func(l_sub_u, r_sub_v), 0)
                 # (l-u)v
-                mul1_0 = self.cluster.compute(func(l_sub_u, v_shared.v0), 0)
-                mul1_1 = self.cluster.compute(func(l_sub_u, v_shared.v1), 1)
+                mul1_0, mul1_1 = parallel([
+                    lambda: self.cluster.compute(func(l_sub_u, v_shared.v0), 0),
+                    lambda: self.cluster.compute(func(l_sub_u, v_shared.v1), 1)
+                ], [[], []])
+
                 # u(r-v)
-                mul2_0 = self.cluster.compute(func(u_shared.v0, r_sub_v), 0)
-                mul2_1 = self.cluster.compute(func(u_shared.v1, r_sub_v), 1)
+                mul2_0, mul2_1 = parallel([
+                    lambda: self.cluster.compute(func(u_shared.v0, r_sub_v), 0),
+                    lambda: self.cluster.compute(func(u_shared.v1, r_sub_v), 1)
+                ], [[], []])
+
                 return self.add(
                     ASharedTensor(
-                        self.cluster.compute(ge.add(ge.add(mul0, mul1_0), mul2_0), 0),
-                        self.cluster.compute(ge.add(mul1_1, mul2_1), 1)
+                        *parallel([lambda: self.cluster.compute(ge.add(ge.add(mul0, mul1_0), mul2_0), 0),
+                                   lambda: self.cluster.compute(ge.add(mul1_1, mul2_1), 1)],
+                                  [[], []])
                     ),
                     w_shared
                 )
             else:
                 return ASharedTensor(
-                    self.cluster.compute(func(left.v0, right), 0),
-                    self.cluster.compute(func(left.v1, right), 1)
+                    *parallel([lambda: self.cluster.compute(func(left.v0, right), 0),
+                               lambda: self.cluster.compute(func(left.v1, right), 1)],
+                              [[], []])
                 )
         else:
             if isinstance(right, ASharedTensor):
                 return ASharedTensor(
-                    self.cluster.compute(func(left, right.v0), 0),
-                    self.cluster.compute(func(left, right.v1), 1)
+                    *parallel([lambda: self.cluster.compute(func(left, right.v0), 0),
+                               lambda: self.cluster.compute(func(left, right.v1), 1)],
+                              [[], []])
                 )
             else:
                 return self.cluster.compute(func(left, right), 0)
@@ -124,8 +136,19 @@ class ASharing:
     def matmul(self, left, right):
         return self._product(left, right, ge.matmul)
 
+    def conv2d(self, left, right, strides=1):
+        def _conv(x, filters):
+            return ge.conv2d(x, filters, strides)
+        return self._product(left, right, _conv)
+
+    def conv2d_transpose(self, left, right, strides=1):
+        def _convt(x, filters):
+            return ge.conv2d_transpose(x, filters, strides)
+        return self._product(left, right, _convt)
+
     def local_transform(self, x: ASharedTensor, transform, *args):
         return ASharedTensor(
-            self.cluster.compute(transform(x.v0, *args), 0),
-            self.cluster.compute(transform(x.v1, *args), 1)
+            *parallel([lambda: self.cluster.compute(transform(x.v0, *args), 0),
+                       lambda: self.cluster.compute(transform(x.v1, *args), 1)],
+                      [[], []])
         )

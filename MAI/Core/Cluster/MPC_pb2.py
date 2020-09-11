@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\tMPC.proto\"\x15\n\x06Status\x12\x0b\n\x03res\x18\x01 \x01(\x05\"(\n\tServerDef\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\")\n\nServerSpec\x12\x1b\n\x07servers\x18\x01 \x03(\x0b\x32\n.ServerDef\".\n\nTensorSpec\x12\x11\n\ttensor_id\x18\x01 \x01(\x05\x12\r\n\x05shape\x18\x02 \x03(\x05\"\x1f\n\x06Tensor\x12\x15\n\rtensor_buffer\x18\x01 \x01(\x0c\"\"\n\x0b\x43omputation\x12\x13\n\x0b\x63omputation\x18\x01 \x01(\t2\xa9\x01\n\tMPCServer\x12\'\n\rSetServerSpec\x12\x0b.ServerSpec\x1a\x07.Status\"\x00\x12#\n\tGetTensor\x12\x0b.TensorSpec\x1a\x07.Tensor\"\x00\x12&\n\x0c\x44\x65leteTensor\x12\x0b.TensorSpec\x1a\x07.Status\"\x00\x12&\n\x07\x43ompute\x12\x0c.Computation\x1a\x0b.TensorSpec\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tMPC.proto\"\x15\n\x06Status\x12\x0b\n\x03res\x18\x01 \x01(\x05\"(\n\tServerDef\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\")\n\nServerSpec\x12\x1b\n\x07servers\x18\x01 \x03(\x0b\x32\n.ServerDef\".\n\nTensorSpec\x12\x11\n\ttensor_id\x18\x01 \x01(\x05\x12\r\n\x05shape\x18\x02 \x03(\x05\"\x1f\n\x06Tensor\x12\x15\n\rtensor_buffer\x18\x01 \x01(\x0c\"\"\n\x0b\x43omputation\x12\x13\n\x0b\x63omputation\x18\x01 \x01(\t2\xce\x01\n\tMPCServer\x12\'\n\rSetServerSpec\x12\x0b.ServerSpec\x1a\x07.Status\"\x00\x12#\n\tGetTensor\x12\x0b.TensorSpec\x1a\x07.Tensor\"\x00\x12#\n\tSetTensor\x12\x07.Tensor\x1a\x0b.TensorSpec\"\x00\x12&\n\x0c\x44\x65leteTensor\x12\x0b.TensorSpec\x1a\x07.Status\"\x00\x12&\n\x07\x43ompute\x12\x0c.Computation\x1a\x0b.TensorSpec\"\x00\x62\x06proto3')
 )
 
 
@@ -284,7 +284,7 @@ _MPCSERVER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   serialized_start=239,
-  serialized_end=408,
+  serialized_end=445,
   methods=[
   _descriptor.MethodDescriptor(
     name='SetServerSpec',
@@ -305,9 +305,18 @@ _MPCSERVER = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='SetTensor',
+    full_name='MPCServer.SetTensor',
+    index=2,
+    containing_service=None,
+    input_type=_TENSOR,
+    output_type=_TENSORSPEC,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='DeleteTensor',
     full_name='MPCServer.DeleteTensor',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_TENSORSPEC,
     output_type=_STATUS,
@@ -316,7 +325,7 @@ _MPCSERVER = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='Compute',
     full_name='MPCServer.Compute',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_COMPUTATION,
     output_type=_TENSORSPEC,

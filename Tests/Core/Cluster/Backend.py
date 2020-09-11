@@ -1,5 +1,5 @@
-from Core.Cluster import ClusterController
-import Core.GenExpr as ge
+from MAI.Core.Cluster.Cluster import ClusterController
+import MAI.Core.Expression.GenExpr as ge
 
 cluster_controller = ClusterController(["127.0.0.1:8900"])
 

@@ -1,43 +1,4 @@
-import numpy as np
-
-
-class ExpressionError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-
-    def __str__(self):
-        return self.msg
-
-
-class VTensor:
-    def __init__(self, x=None):
-        if x is None:
-            pass
-        elif type(x) in [int, float]:
-            self.tensor_shape = []
-            self.comp_str = str(x)
-        elif type(x) == list:
-            self.tensor_shape = list(np.array(x).shape)
-            self.comp_str = str(x).replace(' ', '')
-        else:
-            if issubclass(type(x), VTensor):
-                self.tensor_shape = x.tensor_shape
-                self.comp_str = x.comp_str
-            else:
-                raise ExpressionError("Cannot convert to VTensor:" + str(x))
-
-    def shape(self):
-        return self.tensor_shape
-
-    def __str__(self):
-        return self.comp_str
-
-
-class ExprVTensor(VTensor):
-    def __init__(self, shape, comp_str: str):
-        super(ExprVTensor, self).__init__()
-        self.tensor_shape = shape
-        self.comp_str = comp_str
+from MAI.Core.Expression.VTensor import *
 
 
 def _can_broadcast(s1: list, s2: list):
@@ -135,6 +96,88 @@ def matmul(left, right):
     return ExprVTensor(
         left.shape()[:-1] + [right.shape()[1]],
         "matmul %s %s" % (left, right)
+    )
+
+
+def conv2d(x, filters, strides=1):
+    """
+    :param x: shape of [..., height, width, channel]
+    :param filters: shape of [size_h, size_w, in_channel, out_channel]
+    :param strides: length-2 list or int
+    :return: shape of [..., (height + 1 - size_h) / stride[1], (width + 1 - size_w)/stride[0], out_channel]
+    """
+    x = VTensor(x)
+    filters = VTensor(filters)
+    if isinstance(strides, int):
+        strides = [strides, strides]
+    if x.shape()[-1] != filters.shape()[-2]:
+        raise ExpressionError(
+            "The input shape %s is incompatible with filters shape %s" % (x.shape(), filters.shape())
+        )
+    if (x.shape()[-3] - filters.shape()[-3] + 1) % strides[0] != 0 or\
+            (x.shape()[-2] - filters.shape()[-2] + 1) % strides[1] != 0:
+        raise ExpressionError(
+            "The stride %s is incompatible with input shape %s and filters shape %s" %
+            (strides, x.shape(), filters.shape())
+        )
+    return ExprVTensor(
+        x.shape()[:-3] +
+        [
+            (x.shape()[-3] - filters.shape()[-3] + 1) / strides[0],
+            (x.shape()[-2] - filters.shape()[-2] + 1) / strides[1],
+         filters.shape()[-1]
+        ],
+        "conv2d %s %s %s" % (x, filters, VTensor(strides))
+    )
+
+
+def conv2d_transpose(x, filters, strides=1):
+    """
+    It is the reverse of convolution.
+    :param x: [..., height, width, channel]
+    :param filters: [..., size_h, size_w, out_channel, in_channel]
+    :param strides: [..., (height + size_h]
+    :return:
+    """
+    x = VTensor(x)
+    filters = VTensor(filters)
+    if isinstance(strides, int):
+        strides = [strides, strides]
+    return ExprVTensor(
+        x.shape()[:-3] + [(x.shape()[-2] - 1) * strides[0] + filters.shape()[0],
+                          (x.shape()[-1] - 1) * strides[1] + filters.shape()[1],
+                          filters.shape()[3]],
+        "conv2d_t %s %s %s" % (x, filters, VTensor(strides))
+    )
+
+
+def avg_pool2d(x, kernel_size):
+    """
+    :param x:
+    :param kernel_size:
+    :return:
+    """
+    x = VTensor(x)
+    if x.shape()[-3] % kernel_size[0] != 0 or x.shape()[-2] % kernel_size[1] != 0:
+        raise ExpressionError("Input shape %s is incompatible with kernel shape %s" % (x.shape(), kernel_size))
+    return ExprVTensor(
+        x.shape()[:-3] + [int(x.shape()[-3] / kernel_size[0]), int(x.shape()[-2]) / kernel_size[1], x.shape()[-1]],
+        "avg_pool2d %s %s" % (x, VTensor(kernel_size))
+    )
+
+
+def up_sample2d(x, scales):
+    """
+    :param x:
+    :param scales:
+    :return:
+    """
+    x = VTensor(x)
+    if isinstance(scales, int):
+        scales = [scales, scales]
+    return ExprVTensor(
+        x.shape()[:-3] + [scales[0] * x.shape()[-3], scales[1] * x.shape()[-2], x.shape()[-1]],
+        "up_sample2d %s %s" % (x, VTensor(scales))
     )
 
 

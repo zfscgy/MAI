@@ -1,5 +1,4 @@
-import matplotlib.pyplot as plt
-from Core.Backends.Common import Backend
+from MAI.Core.Backends.Common import Backend
 
 backend = Backend(0)
 

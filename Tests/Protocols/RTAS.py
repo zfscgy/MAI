@@ -1,5 +1,5 @@
-from Protocols.RTAS import RTAS
-import Core.GenExpr as ge
+from MAI.Protocols.RTAS import RTAS
+import MAI.Core.Expression.GenExpr as ge
 
 rtas = RTAS("127.0.0.1:8900", "127.0.0.1:8901", "127.0.0.2:8902", "127.0.0.3:8903")
 

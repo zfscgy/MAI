@@ -1,8 +1,8 @@
 import grpc
-import Core.MPC_pb2 as pb
-from Core.MPC_pb2_grpc import MPCServerStub
-import Core.GenExpr as ge
 import pickle
+import MAI.Core.Cluster.MPC_pb2 as pb
+from MAI.Core.Cluster.MPC_pb2_grpc import MPCServerStub
+import MAI.Core.Expression.GenExpr as ge
 
 
 class RPCException(Exception):
@@ -29,6 +29,12 @@ class RemoteServer:
 
     def get_tensor(self, tensor_id):
         return pickle.loads(self.stub.GetTensor(pb.TensorSpec(tensor_id=tensor_id)).tensor_buffer)
+
+    def set_tensor(self, tensor):
+        tensor = self.stub.SetTensor(pb.Tensor(tensor_buffer=pickle.dumps(tensor)))
+        if tensor.tensor_id == -1:
+            raise Exception("Failed to set tensor")
+        return tensor.tensor_id, list(tensor.shape)
 
     def delete_tensor(self, tensor_id):
         status = self.stub.DeleteTensor(pb.TensorSpec(tensor_id=tensor_id))
@@ -68,6 +74,12 @@ class ClusterController:
             self.remote_servers[i] = RemoteServer(i, addr)
         for i in range(len(server_addrs)):
             self.remote_servers[i].set_server_spec(server_addrs)
+
+    def set_tensor(self, tensor, server_id):
+        if server_id not in self.remote_servers:
+            raise RPCException("Remote server with id %d not exist" % server_id)
+        tensor_id, shape = self.remote_servers[server_id].set_tensor(tensor)
+        return RemoteTensor(self.remote_servers[server_id], tensor_id, shape)
 
     def compute(self, computation: ge.ExprVTensor, server_id):
         if server_id not in self.remote_servers:

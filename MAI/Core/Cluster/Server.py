@@ -1,6 +1,6 @@
 import grpc
 import concurrent.futures as futures
-from Core.MPC_pb2_grpc import MPCServerServicer, add_MPCServerServicer_to_server
+from MAI.Core.Cluster.MPC_pb2_grpc import MPCServerServicer, add_MPCServerServicer_to_server
 
 server = None
 

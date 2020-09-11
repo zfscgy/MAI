@@ -1,8 +1,7 @@
 import numpy as np
 import time
-import matplotlib.pyplot as plt
-from Protocols.RTAS import RTAS, ASharedTensor
-import Core.GenExpr as ge
+from MAI.Protocols.RTAS import RTAS, ASharedTensor
+import MAI.Core.Expression.GenExpr as ge
 
 
 def accuracy(ys, pred_ys):
@@ -52,7 +51,7 @@ def logistic_backward(xs: ASharedTensor, ys: ASharedTensor, preds: ASharedTensor
     return grads_on_bias, grads_on_weights
 
 
-n_rounds = 10000
+n_rounds = 10001
 batch_size = 32
 test_batch_size = 5000
 test_per_batches = 100
@@ -68,7 +67,7 @@ for i in range(n_rounds):
         pred_ys_revealed = rtas.reconstruct(pred_ys).reveal()
         acc = accuracy(ys_revealed, pred_ys_revealed)
         print("Time %.4f, ACC: %.4f" % (time.time() - start_time, acc))
-        records.append([time.time() - start_time])
+        records.append([time.time() - start_time, acc])
     xs, ys = load_batch(train_data_shared, batch_size)
     pred_ys = logistic(xs)
     g_bias, g_weights = logistic_backward(xs, ys, pred_ys)

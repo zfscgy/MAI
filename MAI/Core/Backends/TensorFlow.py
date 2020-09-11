@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from Core.Backends.Common import Backend, BackendException
+from MAI.Core.Backends.Common import Backend, BackendException
 
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -12,14 +12,43 @@ if gpus:
     print(e)
 
 
+def conv2d(x, filters, strides):
+    return tf.nn.conv2d(x, filters, strides, padding='VALID')
+
+
+def conv2d_transpose(y, filters, strides):
+    output_shape = list(y.shape[:-3]) + [(y.shape[-2] - 1) * strides[0] + filters.shape[0],
+                                         (y.shape[-1] - 1) * strides[1] + filters.shape[1],
+                                         filters.shape[2]]
+    return tf.nn.conv2d_transpose(y, filters, output_shape, strides, padding='VALID')
+
+
+def avg_pool2d(x, kernel_size):
+    return tf.nn.avg_pool2d(x, kernel_size, kernel_size, padding='VALID')
+
+
+def up_sample2d(x, scales):
+    h, w = x.shape[-3:-1]
+    return tf.keras.backend.resize_images(x, scales[0], scales[1], data_format="channels_last", interpolation='nearest')
+
+
 class TFBackend(Backend):
-    def __init__(self, server_id, remote_servers=None):
+    def __init__(self, server_id, remote_servers=None, disable_gpu=False):
         super(TFBackend, self).__init__(server_id, remote_servers)
+        # Some times using GPU may slow down due to memory copies.
+        if disable_gpu:
+            tf.config.set_visible_devices([], 'GPU')
+
         self.funcs.update({
             "add": tf.add,
             "mul": tf.multiply,
             "sub": tf.subtract,
             "matmul": tf.matmul,
+
+            "conv2d": conv2d,
+            "conv2d_t": conv2d_transpose,
+            "avg_pool2d": avg_pool2d,
+            "up_sample2d": up_sample2d,
 
             "gather_1d": lambda x, y, axis: tf.gather(x, y, axis=axis),
             "reshape": lambda x, s: tf.reshape(x, s.tolist()),
@@ -34,7 +63,6 @@ class TFBackend(Backend):
                 shape, low, high: tf.random.normal(shape.tolist(), low, high),
             "random_int": lambda shape, low, high: tf.random.uniform(shape.tolist(), low, high + 1, tf.int32),
             "std": tf.math.reduce_std,
-
 
 
             "sigmoid": tf.sigmoid,

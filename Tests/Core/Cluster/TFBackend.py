@@ -1,0 +1,33 @@
+from MAI.Core.Cluster.Cluster import ClusterController
+import MAI.Core.Expression.GenExpr as ge
+
+cluster_controller = ClusterController(["127.0.0.1:8900"])
+
+
+print("Start test \n[new]\n[gather_1d]\n[reshape]\n============")
+tensor0 = cluster_controller.compute(ge.new([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), 0)
+print("This should be [[1, 2, 3], [4, 5, 6], [7, 8, 9]]:\n", tensor0.reveal())
+tensor1 = cluster_controller.compute(ge.gather_1d(tensor0, [1, 2]), 0)
+print("This should be [[4, 5, 6], [7, 8, 9]]:\n", tensor1.reveal())
+tensor2 = cluster_controller.compute(ge.reshape(tensor1, [6]), 0)
+print("This should be [4, 5, 6, 7, 8, 9]:\n", tensor2.reveal())
+print("Finished test [new] [gather_1d] [reshape]\n==========")
+print("Start test \n[sum]\n[mean]\n===========")
+tensor3 = cluster_controller.compute(ge.reduce_sum(tensor2), 0)
+print("This should be 39:", tensor3.reveal())
+tensor4 = cluster_controller.compute(ge.reduce_mean(tensor0, axis=1), 0)
+print("This should be [6, 15, 24]", tensor4.reveal())
+print("Finished test [sum] [mean]\n===========")
+print("Start test \n[conv2d]\n[conv2d_transpose]\n===========")
+image = cluster_controller.compute(ge.new([[[[1.], [2.], [3.]], [[4.], [5.], [6.]], [[7.], [8.], [9.]]]]), 0)
+filters = cluster_controller.compute(ge.new([[[[1., 2.]], [[1., 2.]]], [[[1., 2.]], [[1., 2.]]]]), 0)
+conv_tensor = cluster_controller.compute(ge.conv2d(image, filters), 0)
+print("This should be [[[[12, 24], [16, 32]], [[24, 48], [28, 56]]]]\n", conv_tensor.reveal())
+deconv_tensor = cluster_controller.compute(ge.conv2d_transpose(conv_tensor, filters), 0)
+print("This should be [[[[60], [140], [80]], [[180], [400], [220]], [[120], [260], [140]]]]\n", deconv_tensor.reveal())
+print("Finished test [conv2d] [conv2d_transpose]\n============")
+print("Start test\n[avg_pool2d]\n[up_sample2d]\n===========")
+avg_pooled = cluster_controller.compute(ge.avg_pool2d(image, [3, 3]), 0)
+print("This should be [[[[5]]]]\n", avg_pooled.reveal())
+up_sampled = cluster_controller.compute(ge.up_sample2d(image, 2), 0)
+print("This should be [[[[1], [1], [2], [2], [3], [3]].....]]\n", up_sampled.reveal())

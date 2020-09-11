@@ -1,5 +1,6 @@
-import Core.GenExpr as ge
-from Protocols.ASharing import ASharing, ASharedTensor
+import MAI.Core.Expression.GenExpr as ge
+from MAI.Protocols.ASharing import ASharing, ASharedTensor
+from MAI.Core.Utils.Parallel import parallel
 
 
 class RTAS(ASharing):
@@ -16,16 +17,18 @@ class RTAS(ASharing):
         random_permutation = self.cluster.compute(ge.random_permutation(size=calc_size(raw_shape)), 0)
         inverse_permutation = self.cluster.compute(ge.inverse_permutation(random_permutation), 0)
         random_permuted_shared_tensor = ASharedTensor(
-            self.cluster.compute(ge.gather_1d(ge.reshape(shared_tensor.v0, [-1]), random_permutation), 0),
-            self.cluster.compute(ge.gather_1d(ge.reshape(shared_tensor.v1, [-1]), random_permutation), 1)
+            *parallel([lambda: self.cluster.compute(ge.gather_1d(ge.reshape(shared_tensor.v0, [-1]), random_permutation), 0),
+                       lambda: self.cluster.compute(ge.gather_1d(ge.reshape(shared_tensor.v1, [-1]), random_permutation), 1)],
+                      [[], []])
         )
         permuted_tensor = self.reconstruct(random_permuted_shared_tensor, 3)
         elementwise_output = self.cluster.compute(func(permuted_tensor), 3)
         shared_output = self.share(elementwise_output)
 
         shared_output_recovered = ASharedTensor(
-            self.cluster.compute(ge.reshape(ge.gather_1d(shared_output.v0, inverse_permutation), raw_shape), 0),
-            self.cluster.compute(ge.reshape(ge.gather_1d(shared_output.v1, inverse_permutation), raw_shape), 1)
+            *parallel([lambda: self.cluster.compute(ge.reshape(ge.gather_1d(shared_output.v0, inverse_permutation), raw_shape), 0),
+                      lambda: self.cluster.compute(ge.reshape(ge.gather_1d(shared_output.v1, inverse_permutation), raw_shape), 1)],
+                     [[], []])
         )
         return shared_output_recovered
 

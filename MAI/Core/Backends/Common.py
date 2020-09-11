@@ -3,9 +3,9 @@ import pandas as pd
 import traceback
 import pickle
 
-from Core.MPC_pb2_grpc import MPCServerServicer
-import Core.MPC_pb2 as pb
-from Core.Cluster import RemoteServer
+from MAI.Core.Cluster.MPC_pb2_grpc import MPCServerServicer
+import MAI.Core.Cluster.MPC_pb2 as pb
+from MAI.Core.Cluster.Cluster import RemoteServer
 
 
 def log(err):
@@ -62,7 +62,10 @@ N_Paras = {
     "mul": 2,
     "sub": 2,
     "matmul": 2,
-
+    "conv2d": 3,
+    "conv2d_t": 3,
+    "avg_pool2d": 2,
+    "up_sample2d": 2,
     "gather_1d": 3,
     "reshape": 2,
     "transpose": 1,
@@ -169,6 +172,11 @@ class Backend(MPCServerServicer):
     def GetTensor(self, request, context):
         tensor = self.tensor_container.get(request.tensor_id)
         return pb.Tensor(tensor_buffer=pickle.dumps(self.to_numpy(tensor)))
+
+    def SetTensor(self, request, context):
+        val = pickle.loads(request.tensor_buffer)
+        tensor_id = self.tensor_container.store(val)
+        return pb.TensorSpec(tensor_id=tensor_id, shape=val.shape)
 
     def Compute(self, request, context):
         try:
